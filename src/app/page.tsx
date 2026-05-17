@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useCallback, useEffect, useSyncExternalStore } from 'react';
-import { PHASES, Phase, ViewType, getStatusNext, getMember, Member } from '@/lib/data';
+import { useState, useCallback, useEffect } from 'react';
+import { PHASES, Phase, ViewType, getStatusNext, getMember } from '@/lib/data';
 import { AppState, loadState, saveState, StoredTask } from '@/lib/storage';
 import MemberSelector from '@/components/pnii/MemberSelector';
 import Header from '@/components/pnii/Header';
@@ -35,37 +35,24 @@ function extractTasksFromPhases(phases: Phase[]): Record<string, StoredTask> {
   return tasks;
 }
 
-// Custom hook: read from localStorage using useSyncExternalStore
-const STORAGE_KEY = 'pnii-senegal-data';
-let storageListeners: (() => void)[] = [];
-
-function subscribeToStorage(callback: () => void) {
-  storageListeners.push(callback);
-  return () => {
-    storageListeners = storageListeners.filter(l => l !== callback);
-  };
-}
-
-function getStorageSnapshot(): AppState | null {
-  return loadState();
-}
-
-function getServerStorageSnapshot(): null {
-  return null;
-}
-
-function notifyStorageChange() {
-  storageListeners.forEach(l => l());
-}
-
 export default function Home() {
-  const stored = useSyncExternalStore(subscribeToStorage, getStorageSnapshot, getServerStorageSnapshot);
-
-  // All mutable state managed via useState, initialized from stored data
-  const [activeMemberId, setActiveMemberId] = useState<string | null>(() => stored?.activeMemberId ?? null);
-  const [showMemberSelector, setShowMemberSelector] = useState(() => !stored?.activeMemberId);
+  // Initialize state directly from localStorage (lazy initializers only run once on client)
+  const [activeMemberId, setActiveMemberId] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const stored = loadState();
+    return stored?.activeMemberId ?? null;
+  });
+  const [showMemberSelector, setShowMemberSelector] = useState(() => {
+    if (typeof window === 'undefined') return true;
+    const stored = loadState();
+    return !stored?.activeMemberId;
+  });
   const [activeView, setActiveView] = useState<ViewType>('overview');
-  const [phases, setPhases] = useState<Phase>(() => stored ? mergeStoredData(PHASES, stored) : PHASES);
+  const [phases, setPhases] = useState<Phase>(() => {
+    if (typeof window === 'undefined') return PHASES;
+    const stored = loadState();
+    return stored ? mergeStoredData(PHASES, stored) : PHASES;
+  });
 
   // Persist whenever phases or member changes
   const persist = useCallback((mid: string | null, p: Phase[]) => {
@@ -75,7 +62,6 @@ export default function Home() {
       lastSaved: new Date().toISOString(),
     };
     saveState(state);
-    notifyStorageChange();
   }, []);
 
   useEffect(() => {
