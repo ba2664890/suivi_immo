@@ -114,7 +114,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50/50">
+    <div className="min-h-screen flex flex-col mesh-bg">
       <Header activeMember={activeMember} onChangeMember={handleChangeMember} />
 
       <main className="flex-1 pb-20">

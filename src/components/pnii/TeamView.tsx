@@ -1,8 +1,8 @@
 'use client';
 
 import {
-  Phase, Member, getMember, MEMBERS,
-  computeMemberScore, PRIORITY_POINTS, PHASE_COLORS,
+  Phase, MEMBERS,
+  computeMemberScore, PHASE_COLORS,
 } from '@/lib/data';
 
 interface TeamViewProps {
@@ -11,9 +11,6 @@ interface TeamViewProps {
 }
 
 export default function TeamView({ phases, activeMemberId }: TeamViewProps) {
-  const now = new Date();
-
-  // Compute scores and sort
   const memberScores = MEMBERS.map(member => {
     const score = computeMemberScore(member.id, phases);
     const assignedTasks = phases.flatMap(p => p.tasks).filter(t => t.assignedTo.includes(member.id));
@@ -24,42 +21,71 @@ export default function TeamView({ phases, activeMemberId }: TeamViewProps) {
       const phase = phases.find(p => p.id === t.phaseId);
       return { ...t, phaseName: phase?.shortName ?? '', phaseId: t.phaseId };
     });
-
     return { member, score, done, inProgress, todo, total: assignedTasks.length, taskDetails };
   }).sort((a, b) => b.score - a.score);
 
   const maxScore = Math.max(...memberScores.map(m => m.score), 1);
 
+  // Get top 3 for podium
+  const podium = memberScores.slice(0, 3);
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-      <div className="flex items-center gap-2 mb-2">
-        <i className="ti ti-users text-xl text-gray-700" />
-        <h2 className="text-lg font-bold text-gray-900">Équipe</h2>
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-pink-500 flex items-center justify-center shadow-md shadow-violet-500/20">
+          <i className="ti ti-users text-lg text-white" />
+        </div>
+        <h2 className="text-lg font-extrabold text-gray-900">Équipe</h2>
       </div>
 
-      {/* Ranking */}
-      <div className="space-y-3">
+      {/* Podium - Top 3 */}
+      {podium.length > 0 && podium.some(m => m.score > 0) && (
+        <div className="flex items-end justify-center gap-3 pt-4 pb-2">
+          {/* 2nd place */}
+          {podium[1] && (
+            <PodiumCard ms={podium[1]} rank={2} isActive={podium[1].member.id === activeMemberId} maxScore={maxScore} />
+          )}
+          {/* 1st place */}
+          {podium[0] && (
+            <PodiumCard ms={podium[0]} rank={1} isActive={podium[0].member.id === activeMemberId} maxScore={maxScore} />
+          )}
+          {/* 3rd place */}
+          {podium[2] && (
+            <PodiumCard ms={podium[2]} rank={3} isActive={podium[2].member.id === activeMemberId} maxScore={maxScore} />
+          )}
+        </div>
+      )}
+
+      {/* Full ranking */}
+      <div className="space-y-2.5">
         {memberScores.map((ms, idx) => {
           const isActive = ms.member.id === activeMemberId;
           const rank = idx + 1;
           const barWidth = maxScore > 0 ? (ms.score / maxScore) * 100 : 0;
+          const pc = ms.taskDetails.length > 0 ? PHASE_COLORS[ms.taskDetails[0].phaseId] : null;
 
           return (
             <div
               key={ms.member.id}
-              className={`bg-white rounded-xl border p-4 transition-all ${
-                isActive
-                  ? `ring-2 ${ms.member.borderColor} ring-offset-2 shadow-sm`
-                  : 'border-gray-200 hover:shadow-sm'
-              }`}
+              className={`relative overflow-hidden bg-white/90 backdrop-blur-sm rounded-2xl border p-4 transition-all duration-300 card-hover
+                ${isActive
+                  ? `ring-2 ${ms.member.borderColor} ring-offset-2 shadow-md shadow-violet-500/10 border-transparent`
+                  : 'border-gray-200/60 hover:shadow-md'
+                }`}
             >
+              {/* Active indicator */}
+              {isActive && (
+                <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-violet-500 to-pink-500 rounded-l-2xl" />
+              )}
+
               <div className="flex items-start gap-3">
-                {/* Rank */}
-                <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-sm shrink-0
-                  ${rank === 1 ? 'bg-yellow-100 text-yellow-700' :
-                    rank === 2 ? 'bg-gray-100 text-gray-600' :
-                    rank === 3 ? 'bg-orange-50 text-orange-700' :
-                    'bg-gray-50 text-gray-400'}`}
+                {/* Rank badge */}
+                <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-extrabold text-xs shrink-0 shadow-sm
+                  ${rank === 1 ? 'bg-gradient-to-br from-yellow-400 to-amber-500 text-white' :
+                    rank === 2 ? 'bg-gradient-to-br from-gray-300 to-gray-400 text-white' :
+                    rank === 3 ? 'bg-gradient-to-br from-orange-300 to-amber-400 text-white' :
+                    'bg-gray-100 text-gray-400'
+                  }`}
                 >
                   {rank}
                 </div>
@@ -67,12 +93,12 @@ export default function TeamView({ phases, activeMemberId }: TeamViewProps) {
                 {/* Avatar */}
                 <div className="relative shrink-0">
                   <div
-                    className={`w-10 h-10 rounded-full ${ms.member.color} flex items-center justify-center text-white font-bold text-xs`}
+                    className={`w-11 h-11 rounded-xl ${ms.member.color} flex items-center justify-center text-white font-bold text-xs shadow-md`}
                   >
                     {ms.member.initial}
                   </div>
                   {isActive && (
-                    <span className="absolute -top-1 -right-1 bg-gradient-to-r from-violet-500 to-pink-500 text-white text-[8px] font-bold px-1 rounded-full">
+                    <span className="absolute -top-1 -right-1 bg-gradient-to-r from-violet-600 to-pink-500 text-white text-[7px] font-extrabold px-1.5 py-0.5 rounded-full shadow-sm">
                       Moi
                     </span>
                   )}
@@ -80,44 +106,37 @@ export default function TeamView({ phases, activeMemberId }: TeamViewProps) {
 
                 {/* Info */}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-gray-900">{ms.member.name}</p>
-                    {isActive && (
-                      <span className="text-[9px] font-bold bg-gradient-to-r from-violet-500 to-pink-500 text-white rounded-full px-1.5 py-0.5">
-                        Moi
-                      </span>
-                    )}
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <span className="text-sm font-bold text-gray-900">{ms.member.name}</span>
+                      <span className="text-[10px] text-gray-400 ml-2 font-medium">{ms.member.role}</span>
+                    </div>
+                    <span className="text-lg font-extrabold gradient-text">{ms.score} pts</span>
                   </div>
-                  <p className="text-xs text-gray-500">{ms.member.role}</p>
 
                   {/* Score bar */}
-                  <div className="mt-2">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-bold text-gray-700">{ms.score} pts</span>
-                    </div>
-                    <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full ${ms.member.color} rounded-full transition-all duration-500`}
-                        style={{ width: `${barWidth}%` }}
-                      />
-                    </div>
+                  <div className="mt-2 w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full ${ms.member.color} rounded-full transition-all duration-700`}
+                      style={{ width: `${barWidth}%` }}
+                    />
                   </div>
 
                   {/* Stats */}
-                  <div className="mt-2 flex items-center gap-3 text-[11px]">
-                    <span className="flex items-center gap-1 text-gray-600">
+                  <div className="mt-2 flex items-center gap-3 text-[10px]">
+                    <span className="flex items-center gap-1 text-gray-500 font-medium">
                       <i className="ti ti-list-check text-xs" />
-                      {ms.total} tâches
+                      {ms.total}
                     </span>
-                    <span className="flex items-center gap-1 text-green-600">
+                    <span className="flex items-center gap-1 text-emerald-600 font-semibold">
                       <i className="ti ti-circle-check text-xs" />
                       {ms.done}
                     </span>
-                    <span className="flex items-center gap-1 text-amber-600">
+                    <span className="flex items-center gap-1 text-amber-600 font-semibold">
                       <i className="ti ti-loader text-xs" />
                       {ms.inProgress}
                     </span>
-                    <span className="flex items-center gap-1 text-gray-400">
+                    <span className="flex items-center gap-1 text-gray-400 font-medium">
                       <i className="ti ti-circle-dashed text-xs" />
                       {ms.todo}
                     </span>
@@ -125,21 +144,21 @@ export default function TeamView({ phases, activeMemberId }: TeamViewProps) {
 
                   {/* Task list */}
                   {ms.taskDetails.length > 0 && (
-                    <div className="mt-3 space-y-1 max-h-40 overflow-y-auto custom-scrollbar">
+                    <div className="mt-3 space-y-1 max-h-36 overflow-y-auto custom-scrollbar">
                       {ms.taskDetails.map(task => {
-                        const pc = PHASE_COLORS[task.phaseId];
-                        const statusColor =
-                          task.status === 'Terminé' ? 'text-green-600 bg-green-50' :
-                          task.status === 'En cours' ? 'text-amber-600 bg-amber-50' :
-                          'text-gray-500 bg-gray-50';
+                        const tpc = PHASE_COLORS[task.phaseId];
+                        const statusStyle =
+                          task.status === 'Terminé' ? 'text-emerald-600 bg-emerald-50 border-emerald-100' :
+                          task.status === 'En cours' ? 'text-amber-600 bg-amber-50 border-amber-100' :
+                          'text-gray-500 bg-gray-50 border-gray-100';
 
                         return (
-                          <div key={task.id} className="flex items-center gap-2 text-[11px]">
-                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded font-semibold ${pc.text} ${pc.bg}`}>
+                          <div key={task.id} className="flex items-center gap-2 text-[10px]">
+                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded-md font-bold ${tpc.text} ${tpc.bg}`}>
                               {task.phaseName}
                             </span>
-                            <span className="text-gray-700 truncate flex-1">{task.title}</span>
-                            <span className={`px-1.5 py-0.5 rounded font-medium ${statusColor}`}>
+                            <span className="text-gray-600 truncate flex-1 font-medium">{task.title}</span>
+                            <span className={`px-1.5 py-0.5 rounded-md font-semibold border ${statusStyle}`}>
                               {task.status}
                             </span>
                           </div>
@@ -155,25 +174,53 @@ export default function TeamView({ phases, activeMemberId }: TeamViewProps) {
       </div>
 
       {/* Scoring legend */}
-      <div className="bg-gray-50 rounded-xl border border-gray-200 p-4">
-        <h3 className="text-xs font-semibold text-gray-700 mb-2 flex items-center gap-1">
-          <i className="ti ti-info-circle text-sm" />
+      <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/60 p-5 shadow-sm">
+        <h3 className="text-xs font-bold text-gray-700 mb-3 flex items-center gap-1.5">
+          <i className="ti ti-info-circle text-sm text-violet-500" />
           Barème de score
         </h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px]">
-          <div className="flex items-center gap-2 bg-red-50 rounded-lg px-3 py-2">
-            <span className="font-bold text-red-700">Critique</span>
-            <span className="text-red-600">Terminé = 30 pts · En cours = 15 pts</span>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[10px]">
+          <div className="flex items-center gap-2 bg-gradient-to-r from-red-50 to-rose-50 rounded-xl px-3 py-2.5 border border-red-100/60">
+            <span className="font-extrabold text-red-600">Critique</span>
+            <span className="text-red-500 font-medium">30 pts · 15 pts</span>
           </div>
-          <div className="flex items-center gap-2 bg-orange-50 rounded-lg px-3 py-2">
-            <span className="font-bold text-orange-700">Haute</span>
-            <span className="text-orange-600">Terminé = 20 pts · En cours = 10 pts</span>
+          <div className="flex items-center gap-2 bg-gradient-to-r from-orange-50 to-amber-50 rounded-xl px-3 py-2.5 border border-orange-100/60">
+            <span className="font-extrabold text-orange-600">Haute</span>
+            <span className="text-orange-500 font-medium">20 pts · 10 pts</span>
           </div>
-          <div className="flex items-center gap-2 bg-sky-50 rounded-lg px-3 py-2">
-            <span className="font-bold text-sky-700">Moyenne</span>
-            <span className="text-sky-600">Terminé = 10 pts · En cours = 5 pts</span>
+          <div className="flex items-center gap-2 bg-gradient-to-r from-sky-50 to-blue-50 rounded-xl px-3 py-2.5 border border-sky-100/60">
+            <span className="font-extrabold text-sky-600">Moyenne</span>
+            <span className="text-sky-500 font-medium">10 pts · 5 pts</span>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// Podium card for top 3
+function PodiumCard({ ms, rank, isActive, maxScore }: {
+  ms: { member: { id: string; name: string; role: string; color: string; borderColor: string; initial: string }; score: number };
+  rank: number;
+  isActive: boolean;
+  maxScore: number;
+}) {
+  const heights = { 1: 'h-32', 2: 'h-24', 3: 'h-20' };
+  const badges = { 1: '🥇', 2: '🥈', 3: '🥉' };
+  const sizes = { 1: 'w-14 h-14 text-sm', 2: 'w-12 h-12 text-xs', 3: 'w-10 h-10 text-[10px]' };
+
+  return (
+    <div className={`flex flex-col items-center ${rank === 1 ? 'order-2' : rank === 2 ? 'order-1' : 'order-3'}`}>
+      <div className="relative mb-2">
+        <div className={`${sizes[rank]} rounded-2xl ${ms.member.color} flex items-center justify-center text-white font-bold shadow-lg ${isActive ? `ring-2 ${ms.member.borderColor} ring-offset-2` : ''}`}>
+          {ms.member.initial}
+        </div>
+        <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-lg">{badges[rank]}</span>
+      </div>
+      <p className="text-[10px] font-bold text-gray-800 text-center max-w-[80px] truncate">{ms.member.name}</p>
+      <p className="text-lg font-extrabold gradient-text mt-1">{ms.score}</p>
+      <div className={`w-20 ${heights[rank]} mt-2 bg-gradient-to-t from-violet-100 to-violet-50 rounded-t-xl flex items-end justify-center pb-2 border border-violet-200/60 border-b-0`}>
+        <span className="text-[10px] font-bold text-violet-600">#{rank}</span>
       </div>
     </div>
   );

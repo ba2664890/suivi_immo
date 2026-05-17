@@ -1,9 +1,8 @@
 'use client';
 
 import {
-  Phase, Task, Member, getMember, MEMBERS,
+  Phase, Task, getMember, MEMBERS,
   PRIORITY_STYLES, STATUS_STYLES, PHASE_COLORS,
-  getStatusNext,
 } from '@/lib/data';
 
 interface MyTasksViewProps {
@@ -21,10 +20,12 @@ export default function MyTasksView({
 
   if (unlockedPhases.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 text-center px-4">
-        <i className="ti ti-lock text-5xl text-gray-300 mb-4" />
-        <h2 className="text-lg font-semibold text-gray-700 mb-2">Aucune phase déverrouillée</h2>
-        <p className="text-sm text-gray-500">Le projet démarre le 18 Mai 2026. Revenez bientôt !</p>
+      <div className="flex flex-col items-center justify-center py-24 text-center px-4 mesh-bg">
+        <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center mb-5 shadow-lg">
+          <i className="ti ti-lock text-3xl text-gray-400" />
+        </div>
+        <h2 className="text-lg font-bold text-gray-700 mb-2">Aucune phase déverrouillée</h2>
+        <p className="text-sm text-gray-400">Le projet démarre le 18 Mai 2026. Revenez bientôt !</p>
       </div>
     );
   }
@@ -32,12 +33,14 @@ export default function MyTasksView({
   const activeMember = getMember(activeMemberId);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
-      <div className="flex items-center gap-2 mb-2">
-        <i className="ti ti-list-check text-xl text-gray-700" />
-        <h2 className="text-lg font-bold text-gray-900">Mes tâches</h2>
+    <div className="max-w-4xl mx-auto px-4 py-6 space-y-5">
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-pink-500 flex items-center justify-center shadow-md shadow-violet-500/20">
+          <i className="ti ti-list-check text-lg text-white" />
+        </div>
+        <h2 className="text-lg font-extrabold text-gray-900">Mes tâches</h2>
         {activeMember && (
-          <span className={`text-xs px-2 py-0.5 rounded-full ${activeMember.color} text-white font-semibold`}>
+          <span className={`text-[10px] px-2.5 py-1 rounded-full ${activeMember.color} text-white font-bold shadow-sm`}>
             {activeMember.name}
           </span>
         )}
@@ -54,20 +57,26 @@ export default function MyTasksView({
         );
 
         return (
-          <div key={phase.id} className={`rounded-xl border ${pc.border} ${pc.bg} overflow-hidden`}>
-            <div className={`px-4 py-3 border-b ${pc.border} flex items-center gap-2`}>
-              <div className={`w-2 h-2 rounded-full ${pc.bgSolid}`} />
+          <div key={phase.id} className={`rounded-2xl border ${pc.border} ${pc.bg} overflow-hidden shadow-sm`}>
+            {/* Phase header */}
+            <div className={`px-4 py-3 border-b ${pc.border} flex items-center gap-2.5 bg-gradient-to-r ${pc.bg} to-white/50`}>
+              <div className={`w-8 h-8 rounded-lg ${pc.bgSolid} flex items-center justify-center text-white font-bold text-[9px] shadow-sm`}>
+                {phase.shortName}
+              </div>
               <h3 className={`font-bold text-sm ${pc.text}`}>
-                {phase.shortName} — {phase.name}
+                {phase.name}
               </h3>
-              <span className="text-xs text-gray-500">({phase.dates})</span>
+              <span className="text-[10px] text-gray-400 font-medium ml-auto">{phase.dates}</span>
             </div>
 
-            <div className="p-4 space-y-3">
+            <div className="p-4 space-y-4">
               {/* My assigned tasks */}
               {myTasks.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Mes tâches assignées</p>
+                  <p className="text-[10px] font-bold text-violet-600 uppercase tracking-widest flex items-center gap-1.5">
+                    <i className="ti ti-user-check text-xs" />
+                    Mes tâches assignées
+                  </p>
                   {myTasks.map(task => (
                     <TaskCardMy
                       key={task.id}
@@ -83,17 +92,20 @@ export default function MyTasksView({
               {/* Available tasks */}
               {availableTasks.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Tâches disponibles</p>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+                    <i className="ti ti-plus-circle text-xs" />
+                    Tâches disponibles
+                  </p>
                   {availableTasks.map(task => (
                     <div
                       key={task.id}
-                      className="flex items-center gap-3 bg-white rounded-lg border border-gray-200 p-3"
+                      className="flex items-center gap-3 bg-white rounded-xl border border-gray-200/80 p-3.5 card-hover"
                     >
                       <PriorityBadge priority={task.priority} />
-                      <span className="text-sm text-gray-800 flex-1">{task.title}</span>
+                      <span className="text-sm text-gray-800 flex-1 font-medium">{task.title}</span>
                       <button
                         onClick={() => onToggleAssign(task.id, activeMemberId)}
-                        className="flex items-center gap-1 px-3 py-1.5 bg-green-50 hover:bg-green-100 text-green-700 text-xs font-semibold rounded-lg border border-green-200 transition-colors"
+                        className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white text-[11px] font-bold rounded-xl shadow-sm shadow-emerald-500/20 hover:shadow-md hover:shadow-emerald-500/30 transition-all"
                       >
                         <i className="ti ti-plus text-sm" />
                         Je prends
@@ -106,15 +118,18 @@ export default function MyTasksView({
               {/* Full tasks */}
               {fullTasks.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Complet</p>
+                  <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest flex items-center gap-1.5">
+                    <i className="ti ti-ban text-xs" />
+                    Complet
+                  </p>
                   {fullTasks.map(task => (
                     <div
                       key={task.id}
-                      className="flex items-center gap-3 bg-gray-50 rounded-lg border border-gray-100 p-3 opacity-60"
+                      className="flex items-center gap-3 bg-gray-50/80 rounded-xl border border-gray-100 p-3 opacity-50"
                     >
                       <PriorityBadge priority={task.priority} />
-                      <span className="text-sm text-gray-500 flex-1">{task.title}</span>
-                      <span className="text-xs text-gray-400 bg-gray-100 px-2 py-1 rounded">Complet</span>
+                      <span className="text-sm text-gray-400 flex-1">{task.title}</span>
+                      <span className="text-[10px] text-gray-400 bg-gray-100 px-2.5 py-1 rounded-lg font-bold">Complet</span>
                     </div>
                   ))}
                 </div>
@@ -127,43 +142,38 @@ export default function MyTasksView({
   );
 }
 
-// ---- Sub-components ----
-
 function TaskCardMy({
-  task, memberId, onUnassign, onCycleStatus,
+  task, onUnassign, onCycleStatus,
 }: {
   task: Task; memberId: string; onUnassign: () => void; onCycleStatus: () => void;
 }) {
   const ss = STATUS_STYLES[task.status];
-  const ps = PRIORITY_STYLES[task.priority];
 
   return (
-    <div className="flex items-start gap-3 bg-white rounded-lg border border-gray-200 p-3">
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-1.5">
-          <PriorityBadge priority={task.priority} />
-          <span className="text-sm font-medium text-gray-900">{task.title}</span>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold bg-violet-50 text-violet-700">
-            <i className="ti ti-check text-xs" />
-            Ma tâche ✓
-          </span>
-          <button
-            onClick={onCycleStatus}
-            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-semibold ${ss.bg} ${ss.text} border border-transparent hover:border-gray-300 transition-colors cursor-pointer`}
-          >
-            <span className={`w-1.5 h-1.5 rounded-full ${ss.dot}`} />
-            {task.status}
-          </button>
-          <button
-            onClick={onUnassign}
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-          >
-            <i className="ti ti-x text-xs" />
-            Se désassigner
-          </button>
-        </div>
+    <div className="bg-white rounded-xl border border-violet-200/60 p-3.5 shadow-sm shadow-violet-500/5">
+      <div className="flex items-start gap-2.5 mb-2">
+        <PriorityBadge priority={task.priority} />
+        <span className="text-sm font-semibold text-gray-900 flex-1 leading-snug">{task.title}</span>
+      </div>
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-gradient-to-r from-violet-50 to-pink-50 text-violet-700 border border-violet-200/60">
+          <i className="ti ti-check text-xs" />
+          Ma tâche ✓
+        </span>
+        <button
+          onClick={onCycleStatus}
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold ${ss.bg} ${ss.text} border border-transparent hover:border-gray-300 transition-all cursor-pointer`}
+        >
+          <span className={`w-1.5 h-1.5 rounded-full ${ss.dot}`} />
+          {task.status}
+        </button>
+        <button
+          onClick={onUnassign}
+          className="inline-flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium text-gray-400 hover:text-red-600 hover:bg-red-50 hover:border-red-200 border border-transparent transition-all"
+        >
+          <i className="ti ti-x text-xs" />
+          Se désassigner
+        </button>
       </div>
     </div>
   );
@@ -172,7 +182,7 @@ function TaskCardMy({
 function PriorityBadge({ priority }: { priority: Task['priority'] }) {
   const ps = PRIORITY_STYLES[priority];
   return (
-    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide ${ps.bg} ${ps.text} border ${ps.border}`}>
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider ${ps.bg} ${ps.text} border ${ps.border}`}>
       {priority}
     </span>
   );
