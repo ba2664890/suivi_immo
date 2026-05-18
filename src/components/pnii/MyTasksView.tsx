@@ -50,10 +50,10 @@ export default function MyTasksView({
         const pc = PHASE_COLORS[phase.id];
         const myTasks = phase.tasks.filter(t => t.assignedTo.includes(activeMemberId));
         const availableTasks = phase.tasks.filter(
-          t => !t.assignedTo.includes(activeMemberId) && t.assignedTo.length < 3
+          t => t.assignedTo.length === 0
         );
-        const fullTasks = phase.tasks.filter(
-          t => !t.assignedTo.includes(activeMemberId) && t.assignedTo.length >= 3
+        const occupiedTasks = phase.tasks.filter(
+          t => t.assignedTo.length > 0 && !t.assignedTo.includes(activeMemberId)
         );
 
         return (
@@ -115,23 +115,33 @@ export default function MyTasksView({
                 </div>
               )}
 
-              {/* Full tasks */}
-              {fullTasks.length > 0 && (
+              {/* Occupied tasks */}
+              {occupiedTasks.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-[10px] font-bold text-gray-300 uppercase tracking-widest flex items-center gap-1.5">
-                    <i className="ti ti-ban text-xs" />
-                    Complet
+                  <p className="text-[10px] font-bold text-amber-500/80 uppercase tracking-widest flex items-center gap-1.5">
+                    <i className="ti ti-lock text-xs" />
+                    Tâches occupées / réservées
                   </p>
-                  {fullTasks.map(task => (
-                    <div
-                      key={task.id}
-                      className="flex items-center gap-3 bg-gray-50/80 rounded-xl border border-gray-100 p-3 opacity-50"
-                    >
-                      <PriorityBadge priority={task.priority} />
-                      <span className="text-sm text-gray-400 flex-1">{task.title}</span>
-                      <span className="text-[10px] text-gray-400 bg-gray-100 px-2.5 py-1 rounded-lg font-bold">Complet</span>
-                    </div>
-                  ))}
+                  {occupiedTasks.map(task => {
+                    const assignee = getMember(task.assignedTo[0]);
+                    return (
+                      <div
+                        key={task.id}
+                        className="flex items-center gap-3 bg-gray-50/70 rounded-xl border border-gray-200/50 p-3 opacity-75"
+                      >
+                        <PriorityBadge priority={task.priority} />
+                        <span className="text-sm text-gray-400 flex-1 font-medium italic">{task.title}</span>
+                        {assignee && (
+                          <div className="flex items-center gap-1.5 bg-white border border-gray-200/60 pl-1.5 pr-2.5 py-1 rounded-full shadow-sm">
+                            <div className={`w-5 h-5 rounded-full ${assignee.color} flex items-center justify-center text-white font-bold text-[8px]`}>
+                              {assignee.initial}
+                            </div>
+                            <span className="text-[10px] font-bold text-gray-500">{assignee.name}</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

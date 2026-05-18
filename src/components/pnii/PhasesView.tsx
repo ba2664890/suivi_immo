@@ -133,6 +133,7 @@ export default function PhasesView({
                   activeMemberId={activeMemberId}
                   onToggleAssign={onToggleAssign}
                   onCycleStatus={onCycleStatus}
+                  phases={phases}
                 />
               ))}
             </div>
@@ -153,74 +154,101 @@ export default function PhasesView({
 }
 
 function TaskCard({
-  task, phaseColor, activeMemberId, onToggleAssign, onCycleStatus,
+  task, phaseColor, activeMemberId, onToggleAssign, onCycleStatus, phases,
 }: {
   task: Task;
   phaseColor: { bg: string; border: string; text: string; bgSolid: string; ring: string };
   activeMemberId: string;
   onToggleAssign: (taskId: string, memberId: string) => void;
   onCycleStatus: (taskId: string) => void;
+  phases: Phase[];
 }) {
   const ps = PRIORITY_STYLES[task.priority];
   const ss = STATUS_STYLES[task.status];
-  const isFull = task.assignedTo.length >= 3;
+  const isFull = task.assignedTo.length >= 1;
   const isAssignedToMe = task.assignedTo.includes(activeMemberId);
+  const assignee = task.assignedTo.length > 0 ? MEMBERS.find(m => m.id === task.assignedTo[0]) : null;
 
   return (
-    <div className={`bg-white/90 backdrop-blur-sm rounded-2xl border p-4 flex flex-col gap-3 card-hover ${isAssignedToMe ? `ring-2 ${phaseColor.ring} ring-offset-2 border-transparent shadow-md shadow-violet-500/10` : 'border-gray-200/60'}`}>
-      {/* Priority + Title */}
-      <div>
-        <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider ${ps.bg} ${ps.text} border ${ps.border} mb-2`}>
-          {task.priority}
-        </span>
-        <p className="text-[13px] font-semibold text-gray-900 leading-snug">{task.title}</p>
+    <div className={`bg-white/90 backdrop-blur-sm rounded-2xl border p-4 flex flex-col justify-between gap-3 card-hover ${isAssignedToMe ? `ring-2 ${phaseColor.ring} ring-offset-2 border-transparent shadow-md shadow-violet-500/10` : 'border-gray-200/60'}`}>
+      <div className="space-y-3">
+        {/* Priority + Title */}
+        <div>
+          <span className={`inline-flex items-center px-2 py-0.5 rounded-lg text-[9px] font-extrabold uppercase tracking-wider ${ps.bg} ${ps.text} border ${ps.border} mb-2`}>
+            {task.priority}
+          </span>
+          <p className="text-[13px] font-semibold text-gray-900 leading-snug">{task.title}</p>
+        </div>
+
+        {/* Status button */}
+        <button
+          onClick={() => onCycleStatus(task.id)}
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold w-fit ${ss.bg} ${ss.text} border border-transparent hover:shadow-sm transition-all cursor-pointer`}
+        >
+          <span className={`w-2 h-2 rounded-full ${ss.dot}`} />
+          {task.status}
+        </button>
+
+        {/* Member avatars */}
+        <div className="flex items-center gap-1 flex-wrap">
+          {MEMBERS.map(member => {
+            const isAssigned = task.assignedTo.includes(member.id);
+            const isMemberBusy = phases.some(p => p.tasks.some(t => t.id !== task.id && t.assignedTo.includes(member.id)));
+            const canAssign = !isAssigned && !isFull && !isMemberBusy;
+            const isMe = member.id === activeMemberId;
+
+            return (
+              <button
+                key={member.id}
+                onClick={() => {
+                  if (isAssigned || canAssign) {
+                    onToggleAssign(task.id, member.id);
+                  }
+                }}
+                disabled={(!isAssigned && isFull) || (!isAssigned && isMemberBusy)}
+                title={`${member.name} (${member.role})${isAssigned ? ' — Désassigner' : isFull ? ' — Complet' : isMemberBusy ? ' — Déjà assigné à une autre tâche' : ' — Assigner'}`}
+                className={`relative w-7 h-7 rounded-xl flex items-center justify-center text-white text-[8px] font-bold transition-all duration-200
+                  ${isAssigned
+                    ? `${member.color} ring-2 ring-offset-1 ${isMe ? member.borderColor : 'ring-gray-200'} shadow-sm`
+                    : (isFull || isMemberBusy)
+                      ? 'bg-gray-100 text-gray-300 opacity-40 cursor-not-allowed'
+                      : 'bg-gray-50 text-gray-300 hover:bg-gray-100 hover:text-gray-400 cursor-pointer border border-dashed border-gray-200'
+                  }`}
+              >
+                {member.initial}
+                {isMe && isAssigned && (
+                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-violet-600 to-pink-500 rounded-full flex items-center justify-center shadow-sm">
+                    <i className="ti ti-check text-[7px] text-white" />
+                  </span>
+                )}
+              </button>
+            );
+          })}
+          <span className="text-[9px] text-gray-300 ml-1 font-semibold">{task.assignedTo.length}/1</span>
+        </div>
       </div>
 
-      {/* Status button */}
-      <button
-        onClick={() => onCycleStatus(task.id)}
-        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold w-fit ${ss.bg} ${ss.text} border border-transparent hover:shadow-sm transition-all cursor-pointer`}
-      >
-        <span className={`w-2 h-2 rounded-full ${ss.dot}`} />
-        {task.status}
-      </button>
-
-      {/* Member avatars */}
-      <div className="flex items-center gap-1 flex-wrap">
-        {MEMBERS.map(member => {
-          const isAssigned = task.assignedTo.includes(member.id);
-          const canAssign = !isAssigned && !isFull;
-          const isMe = member.id === activeMemberId;
-
-          return (
-            <button
-              key={member.id}
-              onClick={() => {
-                if (isAssigned || canAssign) {
-                  onToggleAssign(task.id, member.id);
-                }
-              }}
-              disabled={!isAssigned && isFull}
-              title={`${member.name} (${member.role})${isAssigned ? ' — Désassigner' : isFull ? ' — Complet' : ' — Assigner'}`}
-              className={`relative w-7 h-7 rounded-xl flex items-center justify-center text-white text-[8px] font-bold transition-all duration-200
-                ${isAssigned
-                  ? `${member.color} ring-2 ring-offset-1 ${isMe ? member.borderColor : 'ring-gray-200'} shadow-sm`
-                  : isFull
-                    ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
-                    : 'bg-gray-50 text-gray-300 hover:bg-gray-100 hover:text-gray-400 cursor-pointer border border-dashed border-gray-200'
-                }`}
-            >
-              {member.initial}
-              {isMe && isAssigned && (
-                <span className="absolute -top-1 -right-1 w-3 h-3 bg-gradient-to-r from-violet-600 to-pink-500 rounded-full flex items-center justify-center shadow-sm">
-                  <i className="ti ti-check text-[7px] text-white" />
-                </span>
-              )}
-            </button>
-          );
-        })}
-        <span className="text-[9px] text-gray-300 ml-1 font-semibold">{task.assignedTo.length}/3</span>
-      </div>
+      {/* Prominent Assignee Indicator Footer */}
+      {assignee && (
+        <div className="pt-2.5 border-t border-gray-100 flex items-center justify-between">
+          <span className="text-[9.5px] font-bold text-gray-400">Assignée à :</span>
+          {isAssignedToMe ? (
+            <div className="flex items-center gap-1.5 bg-gradient-to-r from-violet-50 to-pink-50 border border-violet-200/60 pl-1.5 pr-2.5 py-0.5 rounded-full">
+              <div className="w-4 h-4 rounded-full bg-gradient-to-br from-violet-600 to-pink-500 flex items-center justify-center text-white font-extrabold text-[7px]">
+                {assignee.initial}
+              </div>
+              <span className="text-[9px] font-extrabold text-violet-700 truncate max-w-[120px]">{assignee.name} (Moi)</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 pl-1.5 pr-2.5 py-0.5 rounded-full">
+              <div className={`w-4 h-4 rounded-full ${assignee.color} flex items-center justify-center text-white font-extrabold text-[7px]`}>
+                {assignee.initial}
+              </div>
+              <span className="text-[9px] font-extrabold text-gray-600 truncate max-w-[120px]">{assignee.name}</span>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

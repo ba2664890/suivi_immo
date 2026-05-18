@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { PHASES, Phase, ViewType, getMember } from '@/lib/data';
 import { AppState, loadState, saveState, StoredTask } from '@/lib/storage';
+import { toast } from '@/hooks/use-toast';
 import MemberSelector from '@/components/pnii/MemberSelector';
 import Header from '@/components/pnii/Header';
 import Navbar from '@/components/pnii/Navbar';
@@ -51,7 +52,38 @@ export default function App() {
     return stored ? mergeStoredData(PHASES, stored) : PHASES;
   });
 
-  // Persist whenever phases or member changes
+  // Load tasks from database on mount to ensure all users have the same shared state
+  useEffect(() => {
+    async function loadDbTasks() {
+      try {
+        const res = await fetch('/api/tasks');
+        if (!res.ok) throw new Error('Failed to fetch tasks');
+        const data = await res.json();
+        
+        if (data.tasks) {
+          setPhases(prev => prev.map(phase => ({
+            ...phase,
+            tasks: phase.tasks.map(task => {
+              const dbTask = data.tasks[task.id];
+              if (dbTask) {
+                return {
+                  ...task,
+                  assignedTo: dbTask.assignedTo,
+                  status: dbTask.status
+                };
+              }
+              return task;
+            })
+          })));
+        }
+      } catch (err) {
+        console.error('Failed to load tasks from SQLite database:', err);
+      }
+    }
+    loadDbTasks();
+  }, []);
+
+  // Persist local settings (like active member selection)
   const persist = useCallback((mid: string | null, p: Phase[]) => {
     const state: AppState = {
       activeMemberId: mid,
@@ -76,16 +108,59 @@ export default function App() {
   };
 
   const handleToggleAssign = (taskId: string, mid: string) => {
+    // Find if the member is already assigned to some task in the project
+    const alreadyAssignedTask = phases
+      .flatMap(p => p.tasks)
+      .find(t => t.assignedTo.includes(mid));
+
+    // Is the member already assigned to THIS task?
+    const isAssignedToThis = alreadyAssignedTask?.id === taskId;
+
+    if (alreadyAssignedTask && !isAssignedToThis) {
+      const memberName = getMember(mid)?.name ?? "Ce membre";
+      toast({
+        title: "Profil déjà occupé",
+        description: `${memberName} est déjà assigné à la tâche : "${alreadyAssignedTask.title}". Veuillez d'abord le désassigner de sa tâche.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setPhases(prev => prev.map(phase => ({
       ...phase,
       tasks: phase.tasks.map(task => {
         if (task.id !== taskId) return task;
         const isAssigned = task.assignedTo.includes(mid);
+        let nextAssignedTo: string[] = [];
+        
         if (isAssigned) {
-          return { ...task, assignedTo: task.assignedTo.filter(id => id !== mid) };
+          nextAssignedTo = [];
+        } else {
+          // If the task is already chosen by someone else
+          if (task.assignedTo.length >= 1) {
+            const currentAssignee = getMember(task.assignedTo[0]);
+            toast({
+              title: "Tâche déjà occupée",
+              description: `Cette tâche a déjà été choisie par ${currentAssignee?.name ?? "quelqu'un d'autre"}.`,
+              variant: "destructive",
+            });
+            return task;
+          }
+          nextAssignedTo = [mid];
         }
-        if (task.assignedTo.length >= 3) return task;
-        return { ...task, assignedTo: [...task.assignedTo, mid] };
+
+        // Sync asynchronously with SQLite database
+        fetch('/api/tasks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: task.id,
+            assignedTo: nextAssignedTo,
+            status: task.status
+          })
+        }).catch(err => console.error('Failed to sync assignment to DB:', err));
+
+        return { ...task, assignedTo: nextAssignedTo };
       }),
     })));
   };
@@ -96,6 +171,18 @@ export default function App() {
       tasks: phase.tasks.map(task => {
         if (task.id !== taskId) return task;
         const next = task.status === 'À faire' ? 'En cours' : task.status === 'En cours' ? 'Terminé' : 'À faire';
+        
+        // Sync asynchronously with SQLite database
+        fetch('/api/tasks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: task.id,
+            assignedTo: task.assignedTo,
+            status: next
+          })
+        }).catch(err => console.error('Failed to sync status to DB:', err));
+
         return { ...task, status: next };
       }),
     })));
