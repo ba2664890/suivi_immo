@@ -52,7 +52,7 @@ export default function App() {
     return stored ? mergeStoredData(PHASES, stored) : PHASES;
   });
 
-  // Load tasks from database on mount to ensure all users have the same shared state
+  // Load tasks from database on mount and poll every 5 seconds for real-time collaborative updates
   useEffect(() => {
     async function loadDbTasks() {
       try {
@@ -66,11 +66,23 @@ export default function App() {
             tasks: phase.tasks.map(task => {
               const dbTask = data.tasks[task.id];
               if (dbTask) {
-                return {
-                  ...task,
-                  assignedTo: dbTask.assignedTo,
-                  status: dbTask.status
-                };
+                const dbAssigned = dbTask.assignedTo;
+                const dbStatus = dbTask.status;
+                
+                // Compare assignment arrays
+                const isAssignedEqual = 
+                  task.assignedTo.length === dbAssigned.length &&
+                  task.assignedTo.every((val, index) => val === dbAssigned[index]);
+                const isStatusEqual = task.status === dbStatus;
+
+                // Only update local state if there's a difference to avoid screen flickering
+                if (!isAssignedEqual || !isStatusEqual) {
+                  return {
+                    ...task,
+                    assignedTo: dbAssigned,
+                    status: dbStatus
+                  };
+                }
               }
               return task;
             })
@@ -80,7 +92,14 @@ export default function App() {
         console.error('Failed to load tasks from SQLite database:', err);
       }
     }
+    
+    // Initial fetch
     loadDbTasks();
+
+    // Poll database every 5 seconds in background
+    const interval = setInterval(loadDbTasks, 5000);
+
+    return () => clearInterval(interval);
   }, []);
 
   // Persist local settings (like active member selection)
@@ -149,19 +168,19 @@ export default function App() {
         let nextAssignedTo: string[] = [];
         
         if (isAssigned) {
-          nextAssignedTo = [];
+          // Remove member from task assignees
+          nextAssignedTo = task.assignedTo.filter(id => id !== mid);
         } else {
-          // If the task is already chosen by someone else
-          if (task.assignedTo.length >= 1) {
-            const currentAssignee = getMember(task.assignedTo[0]);
+          // If the task has already reached the maximum of 3 participants
+          if (task.assignedTo.length >= 3) {
             toast({
-              title: "Tâche déjà occupée",
-              description: `Cette tâche a déjà été choisie par ${currentAssignee?.name ?? "quelqu'un d'autre"}.`,
+              title: "Tâche complète",
+              description: `Cette tâche a atteint sa limite maximale de 3 participants.`,
               variant: "destructive",
             });
             return task;
           }
-          nextAssignedTo = [mid];
+          nextAssignedTo = [...task.assignedTo, mid];
         }
 
         // Sync asynchronously with SQLite database

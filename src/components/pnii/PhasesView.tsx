@@ -165,9 +165,8 @@ function TaskCard({
 }) {
   const ps = PRIORITY_STYLES[task.priority];
   const ss = STATUS_STYLES[task.status];
-  const isFull = task.assignedTo.length >= 1;
+  const isFull = task.assignedTo.length >= 3;
   const isAssignedToMe = task.assignedTo.includes(activeMemberId);
-  const assignee = task.assignedTo.length > 0 ? MEMBERS.find(m => m.id === task.assignedTo[0]) : null;
 
   return (
     <div className={`bg-white/90 backdrop-blur-sm rounded-2xl border p-4 flex flex-col justify-between gap-3 card-hover ${isAssignedToMe ? `ring-2 ${phaseColor.ring} ring-offset-2 border-transparent shadow-md shadow-violet-500/10` : 'border-gray-200/60'}`}>
@@ -224,29 +223,36 @@ function TaskCard({
               </button>
             );
           })}
-          <span className="text-[9px] text-gray-300 ml-1 font-semibold">{task.assignedTo.length}/1</span>
+          <span className="text-[9px] text-gray-300 ml-1 font-semibold">{task.assignedTo.length}/3</span>
         </div>
       </div>
 
       {/* Prominent Assignee Indicator Footer */}
-      {assignee && (
-        <div className="pt-2.5 border-t border-gray-100 flex items-center justify-between">
+      {task.assignedTo.length > 0 && (
+        <div className="pt-2.5 border-t border-gray-100 flex items-center justify-between flex-wrap gap-y-1.5">
           <span className="text-[9.5px] font-bold text-gray-400">Assignée à :</span>
-          {isAssignedToMe ? (
-            <div className="flex items-center gap-1.5 bg-gradient-to-r from-violet-50 to-pink-50 border border-violet-200/60 pl-1.5 pr-2.5 py-0.5 rounded-full">
-              <div className="w-4 h-4 rounded-full bg-gradient-to-br from-violet-600 to-pink-500 flex items-center justify-center text-white font-extrabold text-[7px]">
-                {assignee.initial}
-              </div>
-              <span className="text-[9px] font-extrabold text-violet-700 truncate max-w-[120px]">{assignee.name} (Moi)</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 pl-1.5 pr-2.5 py-0.5 rounded-full">
-              <div className={`w-4 h-4 rounded-full ${assignee.color} flex items-center justify-center text-white font-extrabold text-[7px]`}>
-                {assignee.initial}
-              </div>
-              <span className="text-[9px] font-extrabold text-gray-600 truncate max-w-[120px]">{assignee.name}</span>
-            </div>
-          )}
+          <div className="flex items-center gap-1.5 flex-wrap">
+            {task.assignedTo.map(id => {
+              const m = MEMBERS.find(member => member.id === id);
+              if (!m) return null;
+              const isMe = m.id === activeMemberId;
+              return isMe ? (
+                <div key={id} className="flex items-center gap-1 bg-gradient-to-r from-violet-50 to-pink-50 border border-violet-200/60 pl-1 pr-2 py-0.5 rounded-full shadow-sm">
+                  <div className="w-3.5 h-3.5 rounded-full bg-gradient-to-br from-violet-600 to-pink-500 flex items-center justify-center text-white font-extrabold text-[6px]">
+                    {m.initial}
+                  </div>
+                  <span className="text-[8px] font-extrabold text-violet-700">{m.name.split(' ')[0]} (Moi)</span>
+                </div>
+              ) : (
+                <div key={id} className="flex items-center gap-1 bg-gray-50 border border-gray-250 pl-1 pr-2 py-0.5 rounded-full shadow-sm">
+                  <div className={`w-3.5 h-3.5 rounded-full ${m.color} flex items-center justify-center text-white font-extrabold text-[6px]`}>
+                    {m.initial}
+                  </div>
+                  <span className="text-[8px] font-extrabold text-gray-600">{m.name.split(' ')[0]}</span>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

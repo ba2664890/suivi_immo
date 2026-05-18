@@ -50,10 +50,10 @@ export default function MyTasksView({
         const pc = PHASE_COLORS[phase.id];
         const myTasks = phase.tasks.filter(t => t.assignedTo.includes(activeMemberId));
         const availableTasks = phase.tasks.filter(
-          t => t.assignedTo.length === 0
+          t => !t.assignedTo.includes(activeMemberId) && t.assignedTo.length < 3
         );
-        const occupiedTasks = phase.tasks.filter(
-          t => t.assignedTo.length > 0 && !t.assignedTo.includes(activeMemberId)
+        const fullTasks = phase.tasks.filter(
+          t => !t.assignedTo.includes(activeMemberId) && t.assignedTo.length >= 3
         );
 
         return (
@@ -115,33 +115,36 @@ export default function MyTasksView({
                 </div>
               )}
 
-              {/* Occupied tasks */}
-              {occupiedTasks.length > 0 && (
+              {/* Full tasks */}
+              {fullTasks.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-[10px] font-bold text-amber-500/80 uppercase tracking-widest flex items-center gap-1.5">
-                    <i className="ti ti-lock text-xs" />
-                    Tâches occupées / réservées
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+                    <i className="ti ti-ban text-xs" />
+                    Tâches complètes (3 personnes maximum)
                   </p>
-                  {occupiedTasks.map(task => {
-                    const assignee = getMember(task.assignedTo[0]);
-                    return (
-                      <div
-                        key={task.id}
-                        className="flex items-center gap-3 bg-gray-50/70 rounded-xl border border-gray-200/50 p-3 opacity-75"
-                      >
-                        <PriorityBadge priority={task.priority} />
-                        <span className="text-sm text-gray-400 flex-1 font-medium italic">{task.title}</span>
-                        {assignee && (
-                          <div className="flex items-center gap-1.5 bg-white border border-gray-200/60 pl-1.5 pr-2.5 py-1 rounded-full shadow-sm">
-                            <div className={`w-5 h-5 rounded-full ${assignee.color} flex items-center justify-center text-white font-bold text-[8px]`}>
-                              {assignee.initial}
+                  {fullTasks.map(task => (
+                    <div
+                      key={task.id}
+                      className="flex items-center gap-3 bg-gray-50/70 rounded-xl border border-gray-200/50 p-3 opacity-70"
+                    >
+                      <PriorityBadge priority={task.priority} />
+                      <span className="text-sm text-gray-400 flex-1 font-medium italic line-through decoration-gray-300">{task.title}</span>
+                      <div className="flex items-center gap-1.5">
+                        {task.assignedTo.map(id => {
+                          const assignee = getMember(id);
+                          return assignee ? (
+                            <div key={id} className="flex items-center gap-1 bg-white border border-gray-200/60 pl-1 pr-2 py-0.5 rounded-full shadow-sm" title={assignee.name}>
+                              <div className={`w-4 h-4 rounded-full ${assignee.color} flex items-center justify-center text-white font-bold text-[7px]`}>
+                                {assignee.initial}
+                              </div>
+                              <span className="text-[9px] font-bold text-gray-500">{assignee.name.split(' ')[0]}</span>
                             </div>
-                            <span className="text-[10px] font-bold text-gray-500">{assignee.name}</span>
-                          </div>
-                        )}
+                          ) : null;
+                        })}
                       </div>
-                    );
-                  })}
+                      <span className="text-[9px] font-extrabold text-amber-600 bg-amber-50 border border-amber-200/50 px-2 py-0.5 rounded-lg shadow-sm">Complet</span>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

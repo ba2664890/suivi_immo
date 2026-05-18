@@ -10,7 +10,7 @@ export async function GET() {
     taskStates.forEach(ts => {
       tasksMap[ts.id] = {
         id: ts.id,
-        assignedTo: ts.assignedTo ? [ts.assignedTo] : [],
+        assignedTo: ts.assignedTo ? ts.assignedTo.split(',') : [],
         status: ts.status,
       };
     });
@@ -31,19 +31,18 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing task id' }, { status: 400 });
     }
 
-    // Since we only allow 1 assignee max, assignedTo in DB is stored as a string.
-    // If request sent assignedTo as an array, extract the first element or empty string.
-    const assigneeId = Array.isArray(assignedTo) ? (assignedTo[0] ?? '') : (assignedTo ?? '');
+    // Join assignedTo array into a comma-separated string to store in DB
+    const assigneeString = Array.isArray(assignedTo) ? assignedTo.join(',') : (assignedTo ?? '');
 
     const updated = await db.taskState.upsert({
       where: { id },
       update: {
-        assignedTo: assigneeId,
+        assignedTo: assigneeString,
         status: status ?? 'À faire',
       },
       create: {
         id,
-        assignedTo: assigneeId,
+        assignedTo: assigneeString,
         status: status ?? 'À faire',
       },
     });
