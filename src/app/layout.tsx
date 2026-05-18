@@ -18,19 +18,19 @@ export const metadata: Metadata = {
   description: "Plateforme Nationale d'Information Immobilière — Suivi de projet et gestion des tâches",
   authors: [{ name: "PNII Sénégal" }],
   icons: {
-    icon: "https://z-cdn.chatglm.cn/z-ai/static/logo.svg",
+    icon: "/favicon.svg",
   },
   openGraph: {
-    title: "Z.ai Code Scaffold",
-    description: "AI-powered development with modern React stack",
-    url: "https://chat.z.ai",
-    siteName: "Z.ai",
+    title: "PNII Sénégal — Suivi de Projet",
+    description: "Plateforme Nationale d'Information Immobilière — Suivi de projet et gestion des tâches",
+    url: "https://pnii.sn",
+    siteName: "PNII Sénégal",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Z.ai Code Scaffold",
-    description: "AI-powered development with modern React stack",
+    title: "PNII Sénégal — Suivi de Projet",
+    description: "Plateforme Nationale d'Information Immobilière — Suivi de projet et gestion des tâches",
   },
 };
 
