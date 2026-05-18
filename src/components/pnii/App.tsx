@@ -131,12 +131,11 @@ export default function App() {
     const targetTask = phases.flatMap(p => p.tasks).find(t => t.id === taskId);
     const isCurrentlyAssigned = targetTask?.assignedTo.includes(mid);
 
-    // RESTRICTION: A member cannot unassign another member!
-    if (isCurrentlyAssigned && mid !== activeMemberId) {
-      const memberName = getMember(mid)?.name ?? "Ce membre";
+    // RESTRICTION: A member can only modify their own assignment!
+    if (mid !== activeMemberId) {
       toast({
         title: "Action interdite",
-        description: `Seul ${memberName} peut retirer sa candidature pour cette tâche. Vous ne pouvez pas désassigner un autre membre.`,
+        description: `Vous pouvez uniquement gérer votre propre candidature. Impossible de cocher ou décocher pour quelqu'un d'autre.`,
         variant: "destructive",
       });
       return;
