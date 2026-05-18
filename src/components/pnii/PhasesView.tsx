@@ -205,11 +205,11 @@ function TaskCard({
                     onToggleAssign(task.id, member.id);
                   }
                 }}
-                disabled={(!isAssigned && isFull) || (!isAssigned && isMemberBusy)}
-                title={`${member.name} (${member.role})${isAssigned ? ' — Désassigner' : isFull ? ' — Complet' : isMemberBusy ? ' — Déjà assigné à une autre tâche' : ' — Assigner'}`}
+                disabled={(!isAssigned && isFull) || (!isAssigned && isMemberBusy) || (isAssigned && !isMe)}
+                title={`${member.name} (${member.role})${isAssigned ? (isMe ? ' — Se désassigner de cette tâche' : ' — Réservé par ce membre (Seul lui peut se retirer)') : isFull ? ' — Complet' : isMemberBusy ? ' — Déjà assigné à une autre tâche' : ' — Assigner'}`}
                 className={`relative w-7 h-7 rounded-xl flex items-center justify-center text-white text-[8px] font-bold transition-all duration-200
                   ${isAssigned
-                    ? `${member.color} ring-2 ring-offset-1 ${isMe ? member.borderColor : 'ring-gray-200'} shadow-sm`
+                    ? `${member.color} ring-2 ring-offset-1 ${isMe ? `${member.borderColor} cursor-pointer` : 'ring-gray-250 cursor-default opacity-95'} shadow-sm`
                     : (isFull || isMemberBusy)
                       ? 'bg-gray-100 text-gray-300 opacity-40 cursor-not-allowed'
                       : 'bg-gray-50 text-gray-300 hover:bg-gray-100 hover:text-gray-400 cursor-pointer border border-dashed border-gray-200'

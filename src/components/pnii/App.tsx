@@ -108,6 +108,21 @@ export default function App() {
   };
 
   const handleToggleAssign = (taskId: string, mid: string) => {
+    // Find the task in current state
+    const targetTask = phases.flatMap(p => p.tasks).find(t => t.id === taskId);
+    const isCurrentlyAssigned = targetTask?.assignedTo.includes(mid);
+
+    // RESTRICTION: A member cannot unassign another member!
+    if (isCurrentlyAssigned && mid !== activeMemberId) {
+      const memberName = getMember(mid)?.name ?? "Ce membre";
+      toast({
+        title: "Action interdite",
+        description: `Seul ${memberName} peut retirer sa candidature pour cette tâche. Vous ne pouvez pas désassigner un autre membre.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Find if the member is already assigned to some task in the project
     const alreadyAssignedTask = phases
       .flatMap(p => p.tasks)
