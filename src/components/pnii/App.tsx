@@ -142,19 +142,20 @@ export default function App() {
       return;
     }
 
-    // Find if the member is already assigned to some task in the project
-    const alreadyAssignedTask = phases
-      .flatMap(p => p.tasks)
-      .find(t => t.assignedTo.includes(mid));
+    // Find the phase containing this task
+    const parentPhase = phases.find(p => p.tasks.some(t => t.id === taskId));
+    if (!parentPhase) return;
 
-    // Is the member already assigned to THIS task?
-    const isAssignedToThis = alreadyAssignedTask?.id === taskId;
+    // Find if the member is already assigned to another task IN THIS PHASE
+    const alreadyAssignedTaskInPhase = parentPhase.tasks.find(
+      t => t.id !== taskId && t.assignedTo.includes(mid)
+    );
 
-    if (alreadyAssignedTask && !isAssignedToThis) {
+    if (alreadyAssignedTaskInPhase) {
       const memberName = getMember(mid)?.name ?? "Ce membre";
       toast({
-        title: "Profil déjà occupé",
-        description: `${memberName} est déjà assigné à la tâche : "${alreadyAssignedTask.title}". Veuillez d'abord le désassigner de sa tâche.`,
+        title: "Profil occupé dans cette phase",
+        description: `${memberName} est déjà assigné à une tâche dans la phase "${parentPhase.name}" : "${alreadyAssignedTaskInPhase.title}". Veuillez d'abord vous désassigner de cette tâche.`,
         variant: "destructive",
       });
       return;

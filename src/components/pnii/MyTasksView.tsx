@@ -96,22 +96,35 @@ export default function MyTasksView({
                     <i className="ti ti-plus-circle text-xs" />
                     Tâches disponibles
                   </p>
-                  {availableTasks.map(task => (
-                    <div
-                      key={task.id}
-                      className="flex items-center gap-3 bg-white rounded-xl border border-gray-200/80 p-3.5 card-hover"
-                    >
-                      <PriorityBadge priority={task.priority} />
-                      <span className="text-sm text-gray-800 flex-1 font-medium">{task.title}</span>
-                      <button
-                        onClick={() => onToggleAssign(task.id, activeMemberId)}
-                        className="flex items-center gap-1.5 px-3.5 py-2 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white text-[11px] font-bold rounded-xl shadow-sm shadow-emerald-500/20 hover:shadow-md hover:shadow-emerald-500/30 transition-all"
+                  {availableTasks.map(task => {
+                    const isUserBusyInPhase = myTasks.length > 0;
+                    return (
+                      <div
+                        key={task.id}
+                        className="flex items-center gap-3 bg-white rounded-xl border border-gray-200/80 p-3.5 card-hover"
                       >
-                        <i className="ti ti-plus text-sm" />
-                        Je prends
-                      </button>
-                    </div>
-                  ))}
+                        <PriorityBadge priority={task.priority} />
+                        <span className="text-sm text-gray-800 flex-1 font-medium">{task.title}</span>
+                        <button
+                          onClick={() => {
+                            if (!isUserBusyInPhase) {
+                              onToggleAssign(task.id, activeMemberId);
+                            }
+                          }}
+                          disabled={isUserBusyInPhase}
+                          className={`flex items-center gap-1.5 px-3.5 py-2 text-white text-[11px] font-bold rounded-xl transition-all shadow-sm
+                            ${isUserBusyInPhase
+                              ? 'bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed shadow-none'
+                              : 'bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 hover:shadow-md hover:shadow-emerald-500/30'
+                            }`}
+                          title={isUserBusyInPhase ? "Vous avez déjà choisi une tâche dans cette phase" : "Prendre cette tâche"}
+                        >
+                          <i className="ti ti-plus text-sm" />
+                          Je prends
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
 

@@ -124,19 +124,31 @@ export default function PhasesView({
             </div>
 
             {/* Task grid */}
-            <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 ${!unlocked ? 'opacity-40 pointer-events-none' : ''}`}>
-              {phase.tasks.map(task => (
-                <TaskCard
-                  key={task.id}
-                  task={task}
-                  phaseColor={pc}
-                  activeMemberId={activeMemberId}
-                  onToggleAssign={onToggleAssign}
-                  onCycleStatus={onCycleStatus}
-                  phases={phases}
-                />
-              ))}
-            </div>
+            {(() => {
+              const activeMemberAssignedTask = phase.tasks.find(t => t.assignedTo.includes(activeMemberId));
+              const isAnyTaskAssignedToMe = !!activeMemberAssignedTask;
+              
+              return (
+                <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 ${!unlocked ? 'opacity-40 pointer-events-none' : ''}`}>
+                  {phase.tasks.map(task => {
+                    const isAssignedToMe = task.assignedTo.includes(activeMemberId);
+                    const isDimmed = isAnyTaskAssignedToMe && !isAssignedToMe;
+                    return (
+                      <TaskCard
+                        key={task.id}
+                        task={task}
+                        phaseColor={pc}
+                        activeMemberId={activeMemberId}
+                        onToggleAssign={onToggleAssign}
+                        onCycleStatus={onCycleStatus}
+                        phases={phases}
+                        isDimmed={isDimmed}
+                      />
+                    );
+                  })}
+                </div>
+              );
+            })()}
 
             {/* Deliverables section */}
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200/60 p-5 shadow-sm">
@@ -154,7 +166,7 @@ export default function PhasesView({
 }
 
 function TaskCard({
-  task, phaseColor, activeMemberId, onToggleAssign, onCycleStatus, phases,
+  task, phaseColor, activeMemberId, onToggleAssign, onCycleStatus, phases, isDimmed,
 }: {
   task: Task;
   phaseColor: { bg: string; border: string; text: string; bgSolid: string; ring: string };
@@ -162,6 +174,7 @@ function TaskCard({
   onToggleAssign: (taskId: string, memberId: string) => void;
   onCycleStatus: (taskId: string) => void;
   phases: Phase[];
+  isDimmed: boolean;
 }) {
   const ps = PRIORITY_STYLES[task.priority];
   const ss = STATUS_STYLES[task.status];
@@ -169,7 +182,14 @@ function TaskCard({
   const isAssignedToMe = task.assignedTo.includes(activeMemberId);
 
   return (
-    <div className={`bg-white/90 backdrop-blur-sm rounded-2xl border p-4 flex flex-col justify-between gap-3 card-hover ${isAssignedToMe ? `ring-2 ${phaseColor.ring} ring-offset-2 border-transparent shadow-md shadow-violet-500/10` : 'border-gray-200/60'}`}>
+    <div className={`bg-white/90 backdrop-blur-sm rounded-2xl border p-4 flex flex-col justify-between gap-3 card-hover transition-all duration-300
+      ${isAssignedToMe 
+        ? `ring-2 ${phaseColor.ring} ring-offset-2 border-transparent shadow-md shadow-violet-500/10 scale-100 opacity-100` 
+        : isDimmed
+          ? 'opacity-45 border-gray-200/40 bg-gray-50/50 scale-[0.98] grayscale-[25%] pointer-events-none'
+          : 'border-gray-200/60 opacity-100 scale-100'
+      }`}
+    >
       <div className="space-y-3">
         {/* Priority + Title */}
         <div>
@@ -192,7 +212,10 @@ function TaskCard({
         <div className="flex items-center gap-1 flex-wrap">
           {MEMBERS.map(member => {
             const isAssigned = task.assignedTo.includes(member.id);
-            const isMemberBusy = phases.some(p => p.tasks.some(t => t.id !== task.id && t.assignedTo.includes(member.id)));
+            const parentPhase = phases.find(p => p.tasks.some(t => t.id === task.id));
+            const isMemberBusy = parentPhase 
+              ? parentPhase.tasks.some(t => t.id !== task.id && t.assignedTo.includes(member.id))
+              : false;
             const canAssign = !isAssigned && !isFull && !isMemberBusy;
             const isMe = member.id === activeMemberId;
 
